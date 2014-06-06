@@ -1,0 +1,56 @@
+#!/usr/bin/env python
+
+import argparse
+import BaseHTTPServer
+import urllib2
+
+
+class UserProxyHandler(BaseHTTPServer.BaseHTTPRequestHandler):
+    def do_GET(self):
+
+        url = "http://localhost:%s%s" % (self.server.args.backend_port, self.path)
+
+        headers = {}
+        for header in self.server.args.header:
+            key, value = header.split(":", 1)
+            headers[key.strip()] = value.strip()
+
+        request = urllib2.Request(url, headers=headers)
+        try:
+            data = urllib2.urlopen(request).readlines()
+        except urllib2.HTTPError as err:
+            self.send_response(err.getcode())
+            self.end_headers()
+            self.wfile.writelines(err.readlines())
+            return
+
+        self.send_response(200)
+        self.end_headers()
+        self.wfile.writelines(data)
+
+
+def main():
+
+    description_msg = "Mediocre Reverse Proxy."
+    parser = argparse.ArgumentParser(description=description_msg)
+
+    parser.add_argument("-p", "--listen-port", default=8888, type=int,
+                        help="Port to listen on.")
+    parser.add_argument("-P", "--backend-port", default=8989, type=int,
+                        help="Port to proxy to.")
+    parser.add_argument("--header", default=[], action="append",
+                        help="Headers to pass to backend. e.g. --header")
+
+    args = parser.parse_args()
+
+    # localhost is hardcoded to discourage real use. :)
+    server = BaseHTTPServer.HTTPServer(('localhost', args.listen_port), UserProxyHandler)
+    server.args = args
+    try:
+        server.serve_forever()
+    except KeyboardInterrupt:
+        print "Bye!"
+
+
+if __name__ == "__main__":
+    main()
