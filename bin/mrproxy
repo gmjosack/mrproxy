@@ -23,6 +23,11 @@ class UserProxyHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.writelines(err.readlines())
             return
+        except urllib2.URLError as err:
+            self.send_response(503)
+            self.end_headers()
+            self.wfile.writelines("503 Service Unavailable: %s" % err)
+            return
 
         self.send_response(200)
         self.end_headers()

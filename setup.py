@@ -4,7 +4,7 @@ from distutils.core import setup
 
 kwargs = {
     "name": "mrproxy",
-    "version": "0.1.1",
+    "version": "0.1.2",
     "scripts": ["bin/mrproxy"],
     "description": "Mediocre Reverse Proxy.",
     # PyPi, despite not parsing markdown, will prefer the README.md to the
