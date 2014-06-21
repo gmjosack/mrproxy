@@ -6,32 +6,44 @@ import urllib2
 
 
 class UserProxyHandler(BaseHTTPServer.BaseHTTPRequestHandler):
-    def do_GET(self):
 
-        url = "http://localhost:%s%s" % (self.server.args.backend_port, self.path)
+    @property
+    def dest_url(self):
+        return "http://localhost:%s%s" % (self.server.args.backend_port, self.path)
 
-        headers = {}
+    def finish_request(self, code, output):
+        self.send_response(code)
+        self.end_headers()
+        self.wfile.writelines(output)
+
+    def updated_headers(self):
+        headers = dict(self.headers)
         for header in self.server.args.header:
             key, value = header.split(":", 1)
             headers[key.strip()] = value.strip()
+        return headers
 
-        request = urllib2.Request(url, headers=headers)
+    def do_request(self, request):
         try:
             data = urllib2.urlopen(request).readlines()
         except urllib2.HTTPError as err:
-            self.send_response(err.getcode())
-            self.end_headers()
-            self.wfile.writelines(err.readlines())
-            return
+            return self.finish_request(err.getcode(), err.readlines())
         except urllib2.URLError as err:
-            self.send_response(503)
-            self.end_headers()
-            self.wfile.writelines("503 Service Unavailable: %s" % err)
-            return
+            return self.finish_request(503, "503 Service Unavailable: %s" % err)
 
-        self.send_response(200)
-        self.end_headers()
-        self.wfile.writelines(data)
+        return self.finish_request(200, data)
+
+    def do_GET(self):
+        headers = self.updated_headers()
+        request = urllib2.Request(self.dest_url, headers=headers)
+        self.do_request(request)
+
+    def do_POST(self):
+        content_len = int(self.headers['Content-Length'])
+        data = self.rfile.read(content_len)
+        headers = self.updated_headers()
+        request = urllib2.Request(self.dest_url, headers=headers, data=data)
+        self.do_request(request)
 
 
 def main():
