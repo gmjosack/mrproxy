@@ -52,15 +52,25 @@ class UserProxyHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
         return self.finish_request(url.getcode(), url.info().items(), data)
 
-    def do_GET(self):
+    def do_GET(self, method="GET"):
         headers = self.updated_headers()
         request = urllib2.Request(self.dest_url, headers=headers)
+        request.get_method = lambda: method
         self.do_request(request)
 
-    def do_POST(self):
+    def do_POST(self, method="POST"):
         content_len = int(self.headers['Content-Length'])
         data = self.rfile.read(content_len)
         headers = self.updated_headers()
         request = urllib2.Request(self.dest_url, headers=headers, data=data)
+        request.get_method = lambda: method
         self.do_request(request)
 
+    def do_PUT(self):
+        self.do_POST("PUT")
+
+    def do_DELETE(self):
+        self.do_GET("DELETE")
+
+    def do_PATCH(self):
+        self.do_POST("PATCH")
