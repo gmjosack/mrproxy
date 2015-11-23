@@ -74,3 +74,6 @@ class UserProxyHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
     def do_PATCH(self):
         self.do_POST("PATCH")
+
+    def do_OPTIONS(self):
+        self.do_GET("OPTIONS")
