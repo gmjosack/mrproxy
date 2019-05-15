@@ -1,9 +1,15 @@
 #!/usr/bin/env python
 
 import argparse
-import BaseHTTPServer
+import sys
+
+if sys.version_info[0] < 3:
+    from BaseHTTPServer import HTTPServer
+else:
+    from http.server import HTTPServer
 
 from mrproxy import UserProxyHandler
+
 
 def main():
 
@@ -20,12 +26,12 @@ def main():
     args = parser.parse_args()
 
     # localhost is hardcoded to discourage real use. :)
-    server = BaseHTTPServer.HTTPServer(('localhost', args.listen_port), UserProxyHandler)
+    server = HTTPServer(("localhost", args.listen_port), UserProxyHandler)
     server.args = args
     try:
         server.serve_forever()
     except KeyboardInterrupt:
-        print "Bye!"
+        print("Bye!")
 
 
 if __name__ == "__main__":

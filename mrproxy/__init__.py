@@ -1,13 +1,25 @@
 #!/usr/bin/env python
 
-import argparse
-import BaseHTTPServer
-import urllib
-import urllib2
+import sys
 
-class NoRedirectHandler(urllib2.HTTPRedirectHandler):
+if sys.version_info[0] < 3:
+    from BaseHTTPServer import BaseHTTPRequestHandler
+    from urllib import addinfourl
+    from urllib2 import (
+        HTTPRedirectHandler, build_opener, install_opener, urlopen,
+        URLError, HTTPError,
+        Request,
+    )
+else:
+    from http.server import BaseHTTPRequestHandler
+    from urllib.response import addinfourl
+    from urllib.request import HTTPRedirectHandler, build_opener, install_opener, urlopen, Request
+    from urllib.error import URLError, HTTPError
+
+
+class NoRedirectHandler(HTTPRedirectHandler):
     def http_error_302(self, req, fp, code, msg, headers):
-        infourl = urllib.addinfourl(fp, headers, req.get_full_url())
+        infourl = addinfourl(fp, headers, req.get_full_url())
         infourl.status = code
         infourl.code = code
         return infourl
@@ -17,11 +29,11 @@ class NoRedirectHandler(urllib2.HTTPRedirectHandler):
     http_error_307 = http_error_302
 
 
-opener = urllib2.build_opener(NoRedirectHandler())
-urllib2.install_opener(opener)
+opener = build_opener(NoRedirectHandler())
+install_opener(opener)
 
 
-class UserProxyHandler(BaseHTTPServer.BaseHTTPRequestHandler):
+class UserProxyHandler(BaseHTTPRequestHandler):
 
     @property
     def dest_url(self):
@@ -43,18 +55,19 @@ class UserProxyHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
     def do_request(self, request):
         try:
-            url = urllib2.urlopen(request)
+            url = urlopen(request)
             data = url.readlines()
-        except urllib2.HTTPError as err:
-            return self.finish_request(err.getcode(), err.info().items(), err.readlines())
-        except urllib2.URLError as err:
-            return self.finish_request(503, err.info().items(), "503 Service Unavailable: %s" % err)
+        except HTTPError as err:
+            return self.finish_request(err.getcode(), {}, err.readlines())
+        except URLError as err:
+            msg = ["503 Service Unavailable: {}\n".format(err).encode('utf-8')]
+            return self.finish_request(503, {}, msg)
 
         return self.finish_request(url.getcode(), url.info().items(), data)
 
     def do_GET(self, method="GET"):
         headers = self.updated_headers()
-        request = urllib2.Request(self.dest_url, headers=headers)
+        request = Request(self.dest_url, headers=headers)
         request.get_method = lambda: method
         self.do_request(request)
 
@@ -62,7 +75,7 @@ class UserProxyHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         content_len = int(self.headers['Content-Length'])
         data = self.rfile.read(content_len)
         headers = self.updated_headers()
-        request = urllib2.Request(self.dest_url, headers=headers, data=data)
+        request = Request(self.dest_url, headers=headers, data=data)
         request.get_method = lambda: method
         self.do_request(request)
 

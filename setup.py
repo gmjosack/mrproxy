@@ -2,7 +2,7 @@
 
 from distutils.core import setup
 
-execfile("mrproxy/version.py")
+exec(open("mrproxy/version.py").read())
 
 
 kwargs = {
@@ -22,7 +22,8 @@ kwargs = {
     "url": "https://github.com/gmjosack/mrproxy",
     "download_url": "https://github.com/gmjosack/mrproxy/archive/master.tar.gz",
     "classifiers": [
-        "Programming Language :: Python",
+        "Programming Language :: Python :: 2",
+        "Programming Language :: Python :: 3",
         "Topic :: Software Development",
         "Topic :: Software Development :: Libraries",
         "Topic :: Software Development :: Libraries :: Python Modules",
